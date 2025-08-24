@@ -14,6 +14,91 @@ export type Database = {
   }
   public: {
     Tables: {
+      court_availability: {
+        Row: {
+          court_id: string | null
+          created_at: string
+          day_of_week: number
+          end_time: string
+          id: string
+          is_available: boolean | null
+          start_time: string
+          updated_at: string
+        }
+        Insert: {
+          court_id?: string | null
+          created_at?: string
+          day_of_week: number
+          end_time: string
+          id?: string
+          is_available?: boolean | null
+          start_time: string
+          updated_at?: string
+        }
+        Update: {
+          court_id?: string | null
+          created_at?: string
+          day_of_week?: number
+          end_time?: string
+          id?: string
+          is_available?: boolean | null
+          start_time?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "court_availability_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "sport_courts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          external_payment_id: string | null
+          id: string
+          payment_date: string | null
+          payment_method: string
+          reservation_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          external_payment_id?: string | null
+          id?: string
+          payment_date?: string | null
+          payment_method: string
+          reservation_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          external_payment_id?: string | null
+          id?: string
+          payment_date?: string | null
+          payment_method?: string
+          reservation_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_transactions_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -46,6 +131,78 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      reservations: {
+        Row: {
+          complex_id: string | null
+          court_id: string | null
+          created_at: string
+          deposit_amount: number | null
+          deposit_paid: boolean | null
+          end_time: string
+          id: string
+          mercadopago_payment_id: string | null
+          notes: string | null
+          payment_method: string
+          payment_status: string
+          reservation_date: string
+          start_time: string
+          total_price: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          complex_id?: string | null
+          court_id?: string | null
+          created_at?: string
+          deposit_amount?: number | null
+          deposit_paid?: boolean | null
+          end_time: string
+          id?: string
+          mercadopago_payment_id?: string | null
+          notes?: string | null
+          payment_method: string
+          payment_status?: string
+          reservation_date: string
+          start_time: string
+          total_price: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          complex_id?: string | null
+          court_id?: string | null
+          created_at?: string
+          deposit_amount?: number | null
+          deposit_paid?: boolean | null
+          end_time?: string
+          id?: string
+          mercadopago_payment_id?: string | null
+          notes?: string | null
+          payment_method?: string
+          payment_status?: string
+          reservation_date?: string
+          start_time?: string
+          total_price?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservations_complex_id_fkey"
+            columns: ["complex_id"]
+            isOneToOne: false
+            referencedRelation: "sport_complexes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "reservations_court_id_fkey"
+            columns: ["court_id"]
+            isOneToOne: false
+            referencedRelation: "sport_courts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       sport_complexes: {
         Row: {
