@@ -14,7 +14,175 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          phone: string | null
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          phone?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      sport_complexes: {
+        Row: {
+          address: string
+          amenities: string[] | null
+          created_at: string
+          description: string | null
+          email: string | null
+          id: string
+          is_active: boolean | null
+          is_approved: boolean | null
+          latitude: number | null
+          longitude: number | null
+          name: string
+          neighborhood: string | null
+          opening_hours: Json | null
+          owner_id: string
+          payment_status: string | null
+          phone: string | null
+          photos: string[] | null
+          subscription_expires_at: string | null
+          updated_at: string
+          website: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          address: string
+          amenities?: string[] | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_approved?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name: string
+          neighborhood?: string | null
+          opening_hours?: Json | null
+          owner_id: string
+          payment_status?: string | null
+          phone?: string | null
+          photos?: string[] | null
+          subscription_expires_at?: string | null
+          updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          address?: string
+          amenities?: string[] | null
+          created_at?: string
+          description?: string | null
+          email?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_approved?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
+          name?: string
+          neighborhood?: string | null
+          opening_hours?: Json | null
+          owner_id?: string
+          payment_status?: string | null
+          phone?: string | null
+          photos?: string[] | null
+          subscription_expires_at?: string | null
+          updated_at?: string
+          website?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sport_complexes_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sport_courts: {
+        Row: {
+          complex_id: string
+          created_at: string
+          has_lighting: boolean | null
+          has_roof: boolean | null
+          hourly_price: number | null
+          id: string
+          is_active: boolean | null
+          name: string
+          photos: string[] | null
+          players_capacity: number
+          sport: Database["public"]["Enums"]["sport_type"]
+          surface_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          complex_id: string
+          created_at?: string
+          has_lighting?: boolean | null
+          has_roof?: boolean | null
+          hourly_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          photos?: string[] | null
+          players_capacity: number
+          sport: Database["public"]["Enums"]["sport_type"]
+          surface_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          complex_id?: string
+          created_at?: string
+          has_lighting?: boolean | null
+          has_roof?: boolean | null
+          hourly_price?: number | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          photos?: string[] | null
+          players_capacity?: number
+          sport?: Database["public"]["Enums"]["sport_type"]
+          surface_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sport_courts_complex_id_fkey"
+            columns: ["complex_id"]
+            isOneToOne: false
+            referencedRelation: "sport_complexes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +191,13 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      sport_type:
+        | "futbol"
+        | "basquet"
+        | "tenis"
+        | "voley"
+        | "handball"
+        | "skate"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +324,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      sport_type: ["futbol", "basquet", "tenis", "voley", "handball", "skate"],
+    },
   },
 } as const
