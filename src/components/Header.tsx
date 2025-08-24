@@ -2,7 +2,17 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Search, Filter, Menu, X } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { MapPin, Search, Filter, Menu, X, User, LogOut, Settings } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@/hooks/useAuth";
 
 const sports = [
   { id: "todos", name: "Todos", icon: "🏆" },
@@ -23,6 +33,13 @@ interface HeaderProps {
 
 const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-sm border-b border-border shadow-card-custom">
@@ -30,7 +47,7 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
         {/* Main Header */}
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <Link to="/" className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-sport rounded-lg flex items-center justify-center">
               <span className="text-white font-bold text-sm">CJ</span>
             </div>
@@ -38,7 +55,7 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
               <h1 className="text-xl font-bold text-foreground">Canchas Jujuy</h1>
               <p className="text-xs text-muted-foreground hidden sm:block">San Salvador de Jujuy</p>
             </div>
-          </div>
+          </Link>
 
           {/* Desktop Search */}
           <div className="hidden md:flex items-center space-x-4 flex-1 max-w-md mx-8">
@@ -59,9 +76,56 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
               <MapPin className="w-4 h-4 mr-2" />
               Ubicación
             </Button>
-            <Button size="sm" className="bg-gradient-sport hover:shadow-sport transition-all">
-              Registrar Cancha
-            </Button>
+            
+            {user ? (
+              <>
+                <Button 
+                  asChild 
+                  size="sm" 
+                  className="bg-gradient-sport hover:shadow-sport transition-all"
+                >
+                  <Link to="/registrar-cancha">
+                    Registrar Cancha
+                  </Link>
+                </Button>
+                
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="relative">
+                      <Avatar className="w-8 h-8">
+                        <AvatarFallback className="bg-primary text-primary-foreground">
+                          {user.email?.[0]?.toUpperCase() || 'U'}
+                        </AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem disabled>
+                      <User className="mr-2 h-4 w-4" />
+                      {user.email}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/mis-complejos">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Mis Complejos
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleSignOut}>
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Cerrar Sesión
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </>
+            ) : (
+              <Button asChild size="sm" className="bg-gradient-sport hover:shadow-sport transition-all">
+                <Link to="/auth">
+                  Iniciar Sesión
+                </Link>
+              </Button>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -142,9 +206,26 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
                 <MapPin className="w-4 h-4 mr-2" />
                 Seleccionar Ubicación
               </Button>
-              <Button className="bg-gradient-sport">
-                Registrar Mi Cancha
-              </Button>
+              
+              {user ? (
+                <>
+                  <Button asChild className="bg-gradient-sport justify-start">
+                    <Link to="/registrar-cancha">
+                      Registrar Mi Cancha
+                    </Link>
+                  </Button>
+                  <Button variant="outline" className="justify-start" onClick={handleSignOut}>
+                    <LogOut className="w-4 h-4 mr-2" />
+                    Cerrar Sesión ({user.email})
+                  </Button>
+                </>
+              ) : (
+                <Button asChild className="bg-gradient-sport justify-start">
+                  <Link to="/auth">
+                    Iniciar Sesión
+                  </Link>
+                </Button>
+              )}
             </div>
           </div>
         )}

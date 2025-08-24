@@ -6,31 +6,35 @@ import SportComplexCard from "@/components/SportComplexCard";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
   MapPin, 
   TrendingUp, 
   Users, 
   Star,
   ArrowRight,
-  Search
+  Search,
+  Loader2
 } from "lucide-react";
-import { mockSportComplexes, SportComplexData } from "@/data/mockData";
+import { useComplexes, SportComplexData } from "@/hooks/useComplexes";
 import heroImage from "@/assets/hero-sports-complex.jpg";
 
 const Index = () => {
   const [selectedSport, setSelectedSport] = useState("todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  
+  const { complexes, loading, error } = useComplexes();
 
   // Filter complexes based on selected sport and search term
   const filteredComplexes = useMemo(() => {
-    let filtered = mockSportComplexes;
+    let filtered = complexes;
     
     // Filter by sport
     if (selectedSport !== "todos") {
       filtered = filtered.filter(complex => 
-        complex.sports.some(sport => 
-          sport.toLowerCase().includes(selectedSport.toLowerCase())
+        complex.courts?.some(court => 
+          court.sport.toLowerCase().includes(selectedSport.toLowerCase())
         )
       );
     }
@@ -39,16 +43,16 @@ const Index = () => {
     if (searchTerm) {
       filtered = filtered.filter(complex =>
         complex.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        complex.neighborhood.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        complex.neighborhood?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         complex.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        complex.sports.some(sport => 
-          sport.toLowerCase().includes(searchTerm.toLowerCase())
+        complex.courts?.some(court => 
+          court.sport.toLowerCase().includes(searchTerm.toLowerCase())
         )
       );
     }
     
     return filtered;
-  }, [selectedSport, searchTerm]);
+  }, [complexes, selectedSport, searchTerm]);
 
   const handleComplexDetails = (complex: SportComplexData) => {
     console.log("Ver detalles de:", complex.name);
@@ -61,11 +65,22 @@ const Index = () => {
 
   // Statistics
   const stats = {
-    totalComplexes: mockSportComplexes.length,
-    openNow: mockSportComplexes.filter(c => c.isOpen).length,
-    averageRating: (mockSportComplexes.reduce((acc, c) => acc + c.rating, 0) / mockSportComplexes.length).toFixed(1),
-    totalSports: [...new Set(mockSportComplexes.flatMap(c => c.sports))].length
+    totalComplexes: complexes.length,
+    openNow: complexes.filter(c => c.is_active).length,
+    averageRating: "4.5", // Placeholder until we add ratings
+    totalSports: [...new Set(complexes.flatMap(c => c.courts?.map(court => court.sport) || []))].length
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center space-x-2">
+          <Loader2 className="w-6 h-6 animate-spin" />
+          <span>Cargando canchas...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
