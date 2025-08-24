@@ -13,27 +13,7 @@ import {
   Share2,
   Calendar
 } from "lucide-react";
-
-interface SportComplexData {
-  id: string;
-  name: string;
-  description: string;
-  address: string;
-  neighborhood: string;
-  rating: number;
-  reviewCount: number;
-  imageUrl: string;
-  sports: string[];
-  hours: {
-    open: string;
-    close: string;
-  };
-  phone: string;
-  whatsapp: string;
-  priceRange: string;
-  features: string[];
-  isOpen: boolean;
-}
+import { SportComplexData } from "@/hooks/useComplexes";
 
 interface SportComplexCardProps {
   complex: SportComplexData;
@@ -44,11 +24,24 @@ const SportComplexCard = ({ complex, onViewDetails }: SportComplexCardProps) => 
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
 
+  // Transform data to match expected format
+  const imageUrl = complex.photos?.[0] || "/placeholder.svg";
+  const isOpen = complex.is_active;
+  const sports = complex.courts?.map(court => court.sport) || [];
+  const uniqueSports = [...new Set(sports)];
+  const rating = 4.5; // Placeholder until we add ratings
+  const reviewCount = 12; // Placeholder
+  const priceRange = complex.courts?.length > 0 ? `$${complex.courts[0].hourly_price || 2000}/h` : "$2000/h";
+  const description = complex.address;
+
   const handleWhatsAppContact = () => {
     const message = encodeURIComponent(
       `Hola! Me interesa reservar una cancha en ${complex.name}. ¿Podrían darme más información?`
     );
-    window.open(`https://wa.me/${complex.whatsapp}?text=${message}`, '_blank');
+    const whatsappNumber = complex.whatsapp?.replace(/[^\d]/g, '') || complex.phone?.replace(/[^\d]/g, '');
+    if (whatsappNumber) {
+      window.open(`https://wa.me/${whatsappNumber}?text=${message}`, '_blank');
+    }
   };
 
   const handleShare = () => {
@@ -68,7 +61,7 @@ const SportComplexCard = ({ complex, onViewDetails }: SportComplexCardProps) => 
       {/* Image Container */}
       <div className="relative h-48 overflow-hidden">
         <img
-          src={complex.imageUrl}
+          src={imageUrl}
           alt={complex.name}
           className={`w-full h-full object-cover transition-all duration-300 group-hover:scale-105 ${
             imageLoaded ? 'opacity-100' : 'opacity-0'
@@ -113,21 +106,21 @@ const SportComplexCard = ({ complex, onViewDetails }: SportComplexCardProps) => 
         {/* Status Badge */}
         <div className="absolute top-3 left-3">
           <Badge 
-            variant={complex.isOpen ? "default" : "secondary"}
+            variant={isOpen ? "default" : "secondary"}
             className={`${
-              complex.isOpen 
+              isOpen 
                 ? "bg-green-500 text-white" 
                 : "bg-red-500 text-white"
             } shadow-sm`}
           >
-            {complex.isOpen ? "Abierto" : "Cerrado"}
+            {isOpen ? "Abierto" : "Cerrado"}
           </Badge>
         </div>
 
         {/* Price Range */}
         <div className="absolute bottom-3 left-3">
           <Badge variant="outline" className="bg-white/90 text-foreground backdrop-blur-sm border-white/50">
-            {complex.priceRange}
+            {priceRange}
           </Badge>
         </div>
       </div>
@@ -147,21 +140,21 @@ const SportComplexCard = ({ complex, onViewDetails }: SportComplexCardProps) => 
           {/* Rating */}
           <div className="flex items-center space-x-1 ml-3">
             <Star className="w-4 h-4 text-yellow-500 fill-current" />
-            <span className="text-sm font-medium">{complex.rating}</span>
-            <span className="text-xs text-muted-foreground">({complex.reviewCount})</span>
+            <span className="text-sm font-medium">{rating}</span>
+            <span className="text-xs text-muted-foreground">({reviewCount})</span>
           </div>
         </div>
 
         {/* Sports */}
         <div className="flex flex-wrap gap-1 mt-3">
-          {complex.sports.slice(0, 3).map((sport) => (
+          {uniqueSports.slice(0, 3).map((sport) => (
             <Badge key={sport} variant="outline" className="text-xs bg-accent/50 border-accent-foreground/20">
               {sport}
             </Badge>
           ))}
-          {complex.sports.length > 3 && (
+          {uniqueSports.length > 3 && (
             <Badge variant="outline" className="text-xs bg-muted">
-              +{complex.sports.length - 3} más
+              +{uniqueSports.length - 3} más
             </Badge>
           )}
         </div>
@@ -170,14 +163,14 @@ const SportComplexCard = ({ complex, onViewDetails }: SportComplexCardProps) => 
       <CardContent className="pt-0 space-y-4">
         {/* Description */}
         <p className="text-sm text-muted-foreground line-clamp-2">
-          {complex.description}
+          {description}
         </p>
 
         {/* Info Row */}
         <div className="flex items-center justify-between text-sm">
           <div className="flex items-center text-muted-foreground">
             <Clock className="w-4 h-4 mr-1" />
-            {complex.hours.open} - {complex.hours.close}
+            Consultar horarios
           </div>
           <div className="flex items-center text-muted-foreground">
             <Calendar className="w-4 h-4 mr-1" />
