@@ -9,34 +9,50 @@ All colors MUST be HSL.
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --foreground: 220 26% 14%;
 
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card-foreground: 220 26% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 220 26% 14%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    /* Verde esmeralda deportivo como principal */
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 160 84% 65%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Azul deportivo para acciones secundarias */
+    --secondary: 217 91% 60%;
+    --secondary-foreground: 0 0% 100%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 220 14% 96%;
+    --muted-foreground: 220 13% 46%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 160 50% 95%;
+    --accent-foreground: 160 84% 39%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 220 13% 91%;
+    --input: 220 13% 91%;
+    --ring: 160 84% 39%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
+
+    /* Gradientes deportivos */
+    --gradient-sport: linear-gradient(135deg, hsl(160 84% 39%), hsl(217 91% 60%));
+    --gradient-hero: linear-gradient(135deg, hsl(160 84% 39% / 0.9), hsl(217 91% 60% / 0.9));
+    --gradient-card: linear-gradient(180deg, transparent, hsl(160 84% 39% / 0.05));
+    
+    /* Shadows deportivas */
+    --shadow-sport: 0 10px 30px -10px hsl(160 84% 39% / 0.3);
+    --shadow-card: 0 4px 20px -4px hsl(220 26% 14% / 0.1);
+    --shadow-hover: 0 8px 30px -8px hsl(160 84% 39% / 0.4);
+
+    /* Transiciones suaves */
+    --transition-sport: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 
     --sidebar-background: 0 0% 98%;
 
