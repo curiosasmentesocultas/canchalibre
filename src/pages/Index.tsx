@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import Header from "@/components/Header";
 import MapSection from "@/components/MapSection";
@@ -20,6 +21,7 @@ import { useComplexes, SportComplexData } from "@/hooks/useComplexes";
 import heroImage from "@/assets/hero-sports-complex.jpg";
 
 const Index = () => {
+  const navigate = useNavigate();
   const [selectedSport, setSelectedSport] = useState("todos");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
@@ -55,8 +57,7 @@ const Index = () => {
   }, [complexes, selectedSport, searchTerm]);
 
   const handleComplexDetails = (complex: SportComplexData) => {
-    console.log("Ver detalles de:", complex.name);
-    // TODO: Implementar modal o navegación a página de detalle
+    navigate(`/complex/${complex.id}`);
   };
 
   const handleLocationSelect = (location: any) => {
