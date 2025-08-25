@@ -169,6 +169,9 @@ const Index = () => {
                   <Button 
                     size="lg" 
                     className="bg-white text-primary hover:bg-white/90 shadow-lg hover:shadow-xl transition-all text-lg px-8 py-6"
+                    onClick={() => {
+                      document.getElementById('complexes-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
                   >
                     <Search className="w-5 h-5 mr-2" />
                     Explorar Canchas
@@ -177,6 +180,7 @@ const Index = () => {
                     size="lg" 
                     variant="outline" 
                     className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm text-lg px-8 py-6"
+                    onClick={() => navigate('/register-complex')}
                   >
                     Registrar Mi Cancha
                     <ArrowRight className="w-5 h-5 ml-2" />
@@ -205,7 +209,7 @@ const Index = () => {
           </section>
 
           {/* Map Section */}
-          <section className="py-8 bg-muted/30">
+          <section id="map-section" className="py-8 bg-muted/30">
             <div className="container mx-auto px-4">
               <div className="text-center mb-8">
                 <h2 className="text-3xl font-bold text-foreground mb-2">
@@ -224,7 +228,7 @@ const Index = () => {
           </section>
 
           {/* Complexes Grid */}
-          <section className="py-12">
+          <section id="complexes-section" className="py-12">
             <div className="container mx-auto px-4">
               <div className="flex items-center justify-between mb-8">
                 <div>

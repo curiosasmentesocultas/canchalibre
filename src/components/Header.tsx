@@ -72,22 +72,27 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center space-x-2">
-            <Button variant="outline" size="sm" className="text-muted-foreground border-border hover:border-primary hover:text-primary">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-muted-foreground border-border hover:border-primary hover:text-primary"
+              onClick={() => document.getElementById('map-section')?.scrollIntoView({ behavior: 'smooth' })}
+            >
               <MapPin className="w-4 h-4 mr-2" />
-              Ubicación
+              Ver Mapa
             </Button>
             
             {user ? (
               <>
-                <Button 
-                  asChild 
-                  size="sm" 
-                  className="bg-gradient-sport hover:shadow-sport transition-all"
-                >
-                  <Link to="/registrar-cancha">
-                    Registrar Cancha
-                  </Link>
-                </Button>
+                  <Button 
+                    asChild 
+                    size="sm" 
+                    className="bg-gradient-sport hover:shadow-sport transition-all"
+                  >
+                    <Link to="/register-complex">
+                      Registrar Cancha
+                    </Link>
+                  </Button>
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -106,7 +111,7 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                      <Link to="/mis-complejos">
+                      <Link to="/dashboard">
                         <Settings className="mr-2 h-4 w-4" />
                         Mis Complejos
                       </Link>
@@ -202,15 +207,19 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
 
             {/* Mobile Actions */}
             <div className="flex flex-col space-y-2">
-              <Button variant="outline" className="justify-start">
+              <Button 
+                variant="outline" 
+                className="justify-start"
+                onClick={() => document.getElementById('map-section')?.scrollIntoView({ behavior: 'smooth' })}
+              >
                 <MapPin className="w-4 h-4 mr-2" />
-                Seleccionar Ubicación
+                Ver Mapa
               </Button>
               
               {user ? (
                 <>
                   <Button asChild className="bg-gradient-sport justify-start">
-                    <Link to="/registrar-cancha">
+                    <Link to="/register-complex">
                       Registrar Mi Cancha
                     </Link>
                   </Button>
