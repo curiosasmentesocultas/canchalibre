@@ -153,51 +153,90 @@ const BookingModal = ({ complex, isOpen, onClose }: BookingModalProps) => {
     }
   };
 
-  const handleMercadoPagoPayment = async (reservationId: string) => {
+  const sendWhatsAppNotification = async (reservation: any, paymentMethod: string) => {
     try {
-      const { data, error } = await supabase.functions.invoke('create-mercadopago-payment', {
+      const court = complex.courts?.find(c => c.id === selectedCourt);
+      const message = `🏟️ *NUEVA RESERVA*\n\n` +
+        `📍 Complejo: ${complex.name}\n` +
+        `🏐 Cancha: ${court?.name} (${court?.sport})\n` +
+        `📅 Fecha: ${selectedDate?.toLocaleDateString('es-ES')}\n` +
+        `🕐 Horario: ${startTime} - ${endTime}\n` +
+        `💰 Total: $${totalPrice}\n` +
+        `💳 Método de pago: ${paymentMethod === 'transfer' ? 'Transferencia' : paymentMethod === 'cash' ? 'Efectivo' : 'MercadoPago'}\n` +
+        `${paymentMethod === 'cash' ? `💵 Seña requerida: $${Math.round(totalPrice * 0.3)}\n` : ''}` +
+        `${notes ? `📝 Notas: ${notes}\n` : ''}` +
+        `\n📞 Contactar al cliente para confirmar`;
+
+      const { data, error } = await supabase.functions.invoke('send-whatsapp-notification', {
         body: {
-          reservationId,
-          amount: totalPrice,
-          description: `Reserva en ${complex.name} - Cancha ${complex.courts?.find(c => c.id === selectedCourt)?.name}`
+          phoneNumber: complex.whatsapp || complex.phone || '5491133334444',
+          message,
+          complexName: complex.name,
+          reservationId: reservation.id
         }
       });
 
       if (error) throw error;
 
-      // Open MercadoPago in new tab
-      if (data?.url) {
-        window.open(data.url, '_blank');
-        toast({
-          title: "Pago iniciado",
-          description: "Se abrió MercadoPago en una nueva pestaña para completar el pago"
-        });
-        onClose();
-      }
+      return data;
+    } catch (error: any) {
+      console.error('Error sending WhatsApp notification:', error);
+      throw error;
+    }
+  };
+
+  const handleMercadoPagoPayment = async (reservationId: string) => {
+    try {
+      await sendWhatsAppNotification({ id: reservationId }, 'mercado_pago');
+      toast({
+        title: "Reserva creada",
+        description: "Se ha enviado la notificación por WhatsApp. Te contactaremos para coordinar el pago por MercadoPago."
+      });
+      onClose();
     } catch (error: any) {
       toast({
-        title: "Error en el pago",
-        description: error.message,
+        title: "Error",
+        description: "Reserva creada pero no se pudo enviar la notificación",
         variant: "destructive"
       });
+      onClose();
     }
   };
 
   const handleBankTransfer = async (reservation: any) => {
-    toast({
-      title: "Reserva creada",
-      description: "Te contactaremos con los datos para la transferencia bancaria",
-    });
-    onClose();
+    try {
+      await sendWhatsAppNotification(reservation, 'transfer');
+      toast({
+        title: "Reserva creada",
+        description: "Se ha enviado la notificación por WhatsApp. Te contactaremos con los datos para la transferencia."
+      });
+      onClose();
+    } catch (error: any) {
+      toast({
+        title: "Reserva creada",
+        description: "Te contactaremos con los datos para la transferencia bancaria"
+      });
+      onClose();
+    }
   };
 
   const handleCashPayment = async (reservation: any) => {
-    const depositAmount = totalPrice * 0.3;
-    toast({
-      title: "Reserva creada",
-      description: `Debes pagar una seña de $${depositAmount} para confirmar tu reserva. Te contactaremos para coordinar el pago.`,
-    });
-    onClose();
+    try {
+      const depositAmount = totalPrice * 0.3;
+      await sendWhatsAppNotification(reservation, 'cash');
+      toast({
+        title: "Reserva creada",
+        description: `Se ha enviado la notificación por WhatsApp. Debes pagar una seña de $${depositAmount} para confirmar tu reserva.`
+      });
+      onClose();
+    } catch (error: any) {
+      const depositAmount = totalPrice * 0.3;
+      toast({
+        title: "Reserva creada",
+        description: `Debes pagar una seña de $${depositAmount} para confirmar tu reserva. Te contactaremos para coordinar el pago.`
+      });
+      onClose();
+    }
   };
 
   const isTimeSlotAvailable = (time: string) => {
