@@ -4,9 +4,8 @@ import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Building2, CreditCard, Bell, BarChart3 } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
+import { ArrowLeft, Building2, CreditCard, Bell, BarChart3, LogOut } from "lucide-react";
+import { useSuperAdmin } from "@/hooks/useSuperAdmin";
 import AdminComplexApproval from "@/components/admin/AdminComplexApproval";
 import AdminSubscriptions from "@/components/admin/AdminSubscriptions";
 import AdminNotifications from "@/components/admin/AdminNotifications";
@@ -14,18 +13,14 @@ import AdminDashboard from "@/components/admin/AdminDashboard";
 import { Link } from "react-router-dom";
 
 const AdminPanel = () => {
-  const { user } = useAuth();
-  const { profile, loading, isAdmin } = useProfile();
+  const { isAuthenticated, loading, logout } = useSuperAdmin();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) {
-      navigate("/auth");
+    if (!loading && !isAuthenticated) {
+      navigate("/superadmin");
     }
-    if (!loading && user && !isAdmin) {
-      navigate("/");
-    }
-  }, [user, loading, isAdmin, navigate]);
+  }, [isAuthenticated, loading, navigate]);
 
   if (loading) {
     return (
@@ -35,9 +30,14 @@ const AdminPanel = () => {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAuthenticated) {
     return null;
   }
+
+  const handleLogout = () => {
+    logout();
+    navigate("/superadmin");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -64,12 +64,21 @@ const AdminPanel = () => {
             </div>
           </div>
           
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Conectado como</p>
-              <p className="font-medium text-foreground">{profile?.full_name || user?.email}</p>
-              <p className="text-xs text-primary font-semibold uppercase">{profile?.role}</p>
+              <p className="font-medium text-foreground">Super Administrador</p>
+              <p className="text-xs text-destructive font-semibold uppercase">SUPER ADMIN</p>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleLogout}
+              className="flex items-center gap-2"
+            >
+              <LogOut className="w-4 h-4" />
+              Salir
+            </Button>
           </div>
         </div>
 

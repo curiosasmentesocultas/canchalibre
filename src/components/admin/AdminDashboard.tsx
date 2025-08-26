@@ -1,28 +1,36 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Building2, Users, Calendar, TrendingUp, AlertTriangle, CheckCircle, Clock, CreditCard } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { Building2, Users, DollarSign, AlertTriangle, TrendingUp, Clock } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface DashboardStats {
   totalComplexes: number;
   pendingApproval: number;
+  approvedComplexes: number;
   activeSubscriptions: number;
-  expiringSoon: number;
-  totalRevenue: number;
-  newThisMonth: number;
+  trialSubscriptions: number;
+  expiredSubscriptions: number;
+  totalUsers: number;
+  totalReservations: number;
+  monthlyReservations: number;
 }
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState<DashboardStats>({
     totalComplexes: 0,
     pendingApproval: 0,
+    approvedComplexes: 0,
     activeSubscriptions: 0,
-    expiringSoon: 0,
-    totalRevenue: 0,
-    newThisMonth: 0,
+    trialSubscriptions: 0,
+    expiredSubscriptions: 0,
+    totalUsers: 0,
+    totalReservations: 0,
+    monthlyReservations: 0,
   });
   const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchDashboardStats();
@@ -32,50 +40,79 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
 
-      // Get all complexes
-      const { data: complexes, error: complexesError } = await supabase
+      // Get complexes data
+      const { data: complexes, error: complexError } = await supabase
         .from('sport_complexes')
-        .select('*');
+        .select('is_approved, payment_status, subscription_expires_at');
 
-      if (complexesError) throw complexesError;
+      if (complexError) throw complexError;
 
-      // Calculate current date and expiration threshold (7 days from now)
-      const today = new Date();
-      const nextWeek = new Date();
-      nextWeek.setDate(today.getDate() + 7);
-      
-      const thisMonth = new Date();
-      thisMonth.setDate(1); // First day of current month
+      // Get users count
+      const { count: usersCount, error: usersError } = await supabase
+        .from('profiles')
+        .select('*', { count: 'exact', head: true });
 
+      if (usersError) throw usersError;
+
+      // Get reservations data
+      const { count: totalReservations, error: reservationsError } = await supabase
+        .from('reservations')
+        .select('*', { count: 'exact', head: true });
+
+      if (reservationsError) throw reservationsError;
+
+      // Get monthly reservations (current month)
+      const startOfMonth = new Date();
+      startOfMonth.setDate(1);
+      startOfMonth.setHours(0, 0, 0, 0);
+
+      const { count: monthlyReservations, error: monthlyError } = await supabase
+        .from('reservations')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', startOfMonth.toISOString());
+
+      if (monthlyError) throw monthlyError;
+
+      // Process complexes data
       const totalComplexes = complexes?.length || 0;
       const pendingApproval = complexes?.filter(c => !c.is_approved).length || 0;
+      const approvedComplexes = complexes?.filter(c => c.is_approved).length || 0;
+      
       const activeSubscriptions = complexes?.filter(c => 
-        c.is_active && c.subscription_expires_at && new Date(c.subscription_expires_at) > today
+        c.payment_status === 'active' && 
+        c.subscription_expires_at && 
+        new Date(c.subscription_expires_at) > new Date()
       ).length || 0;
       
-      const expiringSoon = complexes?.filter(c => {
-        if (!c.subscription_expires_at) return false;
-        const expirationDate = new Date(c.subscription_expires_at);
-        return expirationDate > today && expirationDate <= nextWeek;
-      }).length || 0;
-
-      const newThisMonth = complexes?.filter(c => 
-        new Date(c.created_at) >= thisMonth
+      const trialSubscriptions = complexes?.filter(c => 
+        c.payment_status === 'trial' && 
+        c.subscription_expires_at && 
+        new Date(c.subscription_expires_at) > new Date()
       ).length || 0;
-
-      // Calculate revenue (mock calculation - in real app this would come from payment data)
-      const totalRevenue = activeSubscriptions * 29.99; // Assuming $29.99 per month
+      
+      const expiredSubscriptions = complexes?.filter(c => 
+        c.subscription_expires_at && 
+        new Date(c.subscription_expires_at) <= new Date()
+      ).length || 0;
 
       setStats({
         totalComplexes,
         pendingApproval,
+        approvedComplexes,
         activeSubscriptions,
-        expiringSoon,
-        totalRevenue,
-        newThisMonth,
+        trialSubscriptions,
+        expiredSubscriptions,
+        totalUsers: usersCount || 0,
+        totalReservations: totalReservations || 0,
+        monthlyReservations: monthlyReservations || 0,
       });
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: "No se pudieron cargar las estadísticas: " + error.message,
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -83,13 +120,16 @@ const AdminDashboard = () => {
 
   if (loading) {
     return (
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {[...Array(6)].map((_, i) => (
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {[...Array(8)].map((_, i) => (
           <Card key={i} className="animate-pulse">
-            <CardHeader className="space-y-2">
+            <CardHeader className="pb-2">
               <div className="h-4 bg-muted rounded w-3/4"></div>
-              <div className="h-8 bg-muted rounded w-1/2"></div>
             </CardHeader>
+            <CardContent>
+              <div className="h-8 bg-muted rounded w-1/2 mb-2"></div>
+              <div className="h-3 bg-muted rounded w-full"></div>
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -98,106 +138,104 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+      {/* Main Stats Grid */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total Complexes */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-blue-900 dark:text-blue-100">
-              Total Complejos
-            </CardTitle>
-            <Building2 className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+            <CardTitle className="text-sm font-medium">Total Complejos</CardTitle>
+            <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-              {stats.totalComplexes}
-            </div>
-            <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-              +{stats.newThisMonth} este mes
+            <div className="text-2xl font-bold">{stats.totalComplexes}</div>
+            <p className="text-xs text-muted-foreground">
+              {stats.approvedComplexes} aprobados, {stats.pendingApproval} pendientes
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
+        {/* Total Users */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-orange-900 dark:text-orange-100">
-              Pendientes Aprobación
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+            <CardTitle className="text-sm font-medium">Total Usuarios</CardTitle>
+            <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-900 dark:text-orange-100">
-              {stats.pendingApproval}
-            </div>
-            <Badge variant={stats.pendingApproval > 0 ? "destructive" : "secondary"} className="mt-1">
-              {stats.pendingApproval > 0 ? "Requiere atención" : "Todo al día"}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-green-900 dark:text-green-100">
-              Suscripciones Activas
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-green-600 dark:text-green-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-900 dark:text-green-100">
-              {stats.activeSubscriptions}
-            </div>
-            <p className="text-xs text-green-700 dark:text-green-300 mt-1">
-              {((stats.activeSubscriptions / stats.totalComplexes) * 100 || 0).toFixed(1)}% del total
+            <div className="text-2xl font-bold">{stats.totalUsers}</div>
+            <p className="text-xs text-muted-foreground">
+              Usuarios registrados en la plataforma
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900 border-red-200 dark:border-red-800">
+        {/* Monthly Reservations */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-red-900 dark:text-red-100">
-              Expiran Pronto
-            </CardTitle>
-            <Clock className="h-4 w-4 text-red-600 dark:text-red-400" />
+            <CardTitle className="text-sm font-medium">Reservas del Mes</CardTitle>
+            <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-900 dark:text-red-100">
-              {stats.expiringSoon}
-            </div>
-            <Badge variant={stats.expiringSoon > 0 ? "destructive" : "secondary"} className="mt-1">
-              {stats.expiringSoon > 0 ? "Próximos 7 días" : "Ninguno próximo"}
-            </Badge>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-purple-900 dark:text-purple-100">
-              Ingresos Estimados
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-900 dark:text-purple-100">
-              ${stats.totalRevenue.toFixed(2)}
-            </div>
-            <p className="text-xs text-purple-700 dark:text-purple-300 mt-1">
-              Mensual estimado
+            <div className="text-2xl font-bold">{stats.monthlyReservations}</div>
+            <p className="text-xs text-muted-foreground">
+              Total: {stats.totalReservations} reservas
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950 dark:to-indigo-900 border-indigo-200 dark:border-indigo-800">
+        {/* Revenue Indicator */}
+        <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-indigo-900 dark:text-indigo-100">
-              Nuevos Este Mes
-            </CardTitle>
-            <Users className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+            <CardTitle className="text-sm font-medium">Actividad</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-900 dark:text-indigo-100">
-              {stats.newThisMonth}
+            <div className="text-2xl font-bold">
+              {((stats.monthlyReservations / Math.max(stats.totalReservations, 1)) * 100).toFixed(1)}%
             </div>
-            <p className="text-xs text-indigo-700 dark:text-indigo-300 mt-1">
-              Registros nuevos
+            <p className="text-xs text-muted-foreground">
+              Actividad mensual vs total
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Subscription Status Cards */}
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="border-green-200 bg-green-50/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Suscripciones Activas</CardTitle>
+            <CheckCircle className="h-4 w-4 text-green-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-700">{stats.activeSubscriptions}</div>
+            <p className="text-xs text-green-600">
+              Complejos con suscripción pagada activa
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Períodos de Prueba</CardTitle>
+            <Clock className="h-4 w-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-700">{stats.trialSubscriptions}</div>
+            <p className="text-xs text-blue-600">
+              Complejos en período de prueba (15 días)
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-200 bg-red-50/50">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Suscripciones Vencidas</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-600" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-700">{stats.expiredSubscriptions}</div>
+            <p className="text-xs text-red-600">
+              Requieren renovación o reactivación
             </p>
           </CardContent>
         </Card>
@@ -206,60 +244,51 @@ const AdminDashboard = () => {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Acciones Rápidas</CardTitle>
+          <CardTitle className="flex items-center space-x-2">
+            <CreditCard className="w-5 h-5" />
+            <span>Acciones Rápidas</span>
+          </CardTitle>
           <CardDescription>
-            Resumen de tareas importantes que requieren atención
+            Acciones comunes de administración
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {stats.pendingApproval > 0 && (
-              <div className="flex items-center justify-between p-4 border border-orange-200 rounded-lg bg-orange-50 dark:bg-orange-950 dark:border-orange-800">
-                <div className="flex items-center space-x-3">
-                  <AlertTriangle className="h-5 w-5 text-orange-600" />
-                  <div>
-                    <p className="font-medium text-orange-900 dark:text-orange-100">
-                      {stats.pendingApproval} complejo{stats.pendingApproval > 1 ? 's' : ''} esperando aprobación
-                    </p>
-                    <p className="text-sm text-orange-700 dark:text-orange-300">
-                      Revisa y aprueba los nuevos registros
-                    </p>
-                  </div>
-                </div>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium mb-2">Aprobaciones Pendientes</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold">{stats.pendingApproval}</span>
+                {stats.pendingApproval > 0 ? (
+                  <Badge variant="destructive">Atención</Badge>
+                ) : (
+                  <Badge variant="secondary">Al día</Badge>
+                )}
               </div>
-            )}
-
-            {stats.expiringSoon > 0 && (
-              <div className="flex items-center justify-between p-4 border border-red-200 rounded-lg bg-red-50 dark:bg-red-950 dark:border-red-800">
-                <div className="flex items-center space-x-3">
-                  <Clock className="h-5 w-5 text-red-600" />
-                  <div>
-                    <p className="font-medium text-red-900 dark:text-red-100">
-                      {stats.expiringSoon} suscripción{stats.expiringSoon > 1 ? 'es' : ''} expira{stats.expiringSoon > 1 ? 'n' : ''} pronto
-                    </p>
-                    <p className="text-sm text-red-700 dark:text-red-300">
-                      Envía recordatorios de renovación
-                    </p>
-                  </div>
-                </div>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium mb-2">Complejos Activos</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold">{stats.approvedComplexes}</span>
+                <Badge variant="default">Operativos</Badge>
               </div>
-            )}
-
-            {stats.pendingApproval === 0 && stats.expiringSoon === 0 && (
-              <div className="flex items-center justify-center p-8 text-center">
-                <div className="space-y-2">
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-950 rounded-full flex items-center justify-center mx-auto">
-                    <TrendingUp className="h-6 w-6 text-green-600" />
-                  </div>
-                  <p className="font-medium text-green-900 dark:text-green-100">
-                    ¡Todo está al día!
-                  </p>
-                  <p className="text-sm text-green-700 dark:text-green-300">
-                    No hay tareas urgentes pendientes
-                  </p>
-                </div>
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium mb-2">Vencimientos Próximos</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold">{stats.trialSubscriptions}</span>
+                <Badge variant="secondary">Monitorear</Badge>
               </div>
-            )}
+            </div>
+            
+            <div className="p-4 border rounded-lg">
+              <h4 className="font-medium mb-2">Reactivaciones Necesarias</h4>
+              <div className="flex items-center justify-between">
+                <span className="text-2xl font-bold">{stats.expiredSubscriptions}</span>
+                <Badge variant="outline">Contactar</Badge>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
