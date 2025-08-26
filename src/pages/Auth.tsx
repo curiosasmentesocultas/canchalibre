@@ -15,12 +15,6 @@ import { useToast } from "@/hooks/use-toast";
 import { RoleSelectionModal } from "@/components/RoleSelectionModal";
 
 const Auth = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
-  const [phone, setPhone] = useState("");
-  const [userType, setUserType] = useState<'customer' | 'owner'>('customer');
-  const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -82,56 +76,6 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    try {
-      // Use the actual production URL
-      const baseUrl = window.location.hostname === 'localhost' 
-        ? window.location.origin 
-        : 'https://canchalibre.lovable.app';
-      
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: `${baseUrl}/`,
-          data: {
-            full_name: fullName,
-            phone: phone,
-            role: userType,
-          }
-        }
-      });
-
-      if (error) {
-        if (error.message.includes("User already registered")) {
-          setError("Ya existe una cuenta con este email. Intenta iniciar sesión.");
-        } else {
-          throw error;
-        }
-        return;
-      }
-
-      toast({
-        title: "¡Registro exitoso!",
-        description: "Revisa tu email para confirmar tu cuenta. El enlace puede tardar unos minutos en llegar.",
-      });
-
-      // Switch to signin tab after successful registration
-      const signInTab = document.querySelector('[value="signin"]') as HTMLElement;
-      if (signInTab) {
-        signInTab.click();
-      }
-    } catch (error: any) {
-      setError(error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSocialLogin = async (provider: 'google' | 'facebook') => {
     setSocialLoading(provider);
     setError("");
@@ -162,29 +106,6 @@ const Auth = () => {
     }
   };
 
-  const handleSignIn = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-
-    try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) throw error;
-
-      navigate("/");
-    } catch (error: any) {
-      setError(error.message === "Invalid login credentials" 
-        ? "Credenciales inválidas. Verifica tu email y contraseña." 
-        : error.message
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <>
@@ -198,232 +119,82 @@ const Auth = () => {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-sport rounded-lg flex items-center justify-center">
-                <MapPin className="w-6 h-6 text-white" />
+              <div className="w-12 h-12 bg-gradient-sport rounded-lg flex items-center justify-center shadow-lg">
+                <MapPin className="w-7 h-7 text-white" />
               </div>
-              <span className="text-2xl font-bold text-foreground">Canchas Jujuy</span>
+              <span className="text-3xl font-bold text-foreground">Canchas Jujuy</span>
             </div>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground text-lg">
+              Accede con tu cuenta de Google o Facebook
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
               Reserva canchas o gestiona tu complejo deportivo
             </p>
           </div>
 
           <Card className="shadow-card-custom border-0">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-center text-foreground">Bienvenido</CardTitle>
-              <CardDescription className="text-center">
-                Inicia sesión o crea una cuenta nueva
+            <CardHeader className="pb-6 text-center">
+              <CardTitle className="text-2xl text-foreground">¡Bienvenido!</CardTitle>
+              <CardDescription className="text-base">
+                Ingresa con tu cuenta de Google o Facebook para acceder a la plataforma
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="signin" className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-6">
-                  <TabsTrigger value="signin" className="flex items-center gap-2">
-                    <LogIn className="w-4 h-4" />
-                    Iniciar Sesión
-                  </TabsTrigger>
-                  <TabsTrigger value="signup" className="flex items-center gap-2">
-                    <UserPlus className="w-4 h-4" />
-                    Registrarse
-                  </TabsTrigger>
-                </TabsList>
+              {error && (
+                <Alert className="mb-6 border-destructive/20 bg-destructive/5">
+                  <AlertDescription className="text-destructive">
+                    {error}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-                {error && (
-                  <Alert className="mb-4 border-destructive/20 bg-destructive/5">
-                    <AlertDescription className="text-destructive">
-                      {error}
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                <TabsContent value="signin">
-                  <div className="space-y-4">
-                    {/* Social Login Buttons */}
-                    <div className="space-y-3">
-                      <Button 
-                        type="button"
-                        variant="outline" 
-                        className="w-full flex items-center gap-3 h-11"
-                        onClick={() => handleSocialLogin('google')}
-                        disabled={socialLoading === 'google'}
-                      >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        {socialLoading === 'google' ? "Conectando..." : "Continuar con Google"}
-                      </Button>
-                      
-                      <Button 
-                        type="button"
-                        variant="outline" 
-                        className="w-full flex items-center gap-3 h-11"
-                        onClick={() => handleSocialLogin('facebook')}
-                        disabled={socialLoading === 'facebook'}
-                      >
-                        <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
-                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                        </svg>
-                        {socialLoading === 'facebook' ? "Conectando..." : "Continuar con Facebook"}
-                      </Button>
+              <div className="space-y-4">
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="w-full flex items-center gap-3 h-12 text-base font-medium hover:bg-muted/50 transition-colors"
+                  onClick={() => handleSocialLogin('google')}
+                  disabled={socialLoading === 'google'}
+                >
+                  <svg className="w-6 h-6" viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                  </svg>
+                  {socialLoading === 'google' ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      Conectando...
                     </div>
-
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <Separator className="w-full" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">o continúa con email</span>
-                      </div>
+                  ) : "Continuar con Google"}
+                </Button>
+                
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  className="w-full flex items-center gap-3 h-12 text-base font-medium hover:bg-muted/50 transition-colors"
+                  onClick={() => handleSocialLogin('facebook')}
+                  disabled={socialLoading === 'facebook'}
+                >
+                  <svg className="w-6 h-6" fill="#1877F2" viewBox="0 0 24 24">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                  {socialLoading === 'facebook' ? (
+                    <div className="flex items-center gap-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                      Conectando...
                     </div>
+                  ) : "Continuar con Facebook"}
+                </Button>
+              </div>
 
-                    <form onSubmit={handleSignIn} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="email">Email</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="tu@email.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="password">Contraseña</Label>
-                        <Input
-                          id="password"
-                          type="password"
-                          placeholder="Tu contraseña"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={loading}
-                      >
-                        {loading ? "Iniciando sesión..." : "Iniciar Sesión"}
-                      </Button>
-                    </form>
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="signup">
-                  <div className="space-y-4">
-                    {/* Social Signup Buttons */}
-                    <div className="space-y-3">
-                      <Button 
-                        type="button"
-                        variant="outline" 
-                        className="w-full flex items-center gap-3 h-11"
-                        onClick={() => handleSocialLogin('google')}
-                        disabled={socialLoading === 'google'}
-                      >
-                        <svg className="w-5 h-5" viewBox="0 0 24 24">
-                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                        </svg>
-                        {socialLoading === 'google' ? "Conectando..." : "Registrarse con Google"}
-                      </Button>
-                      
-                      <Button 
-                        type="button"
-                        variant="outline" 
-                        className="w-full flex items-center gap-3 h-11"
-                        onClick={() => handleSocialLogin('facebook')}
-                        disabled={socialLoading === 'facebook'}
-                      >
-                        <svg className="w-5 h-5" fill="#1877F2" viewBox="0 0 24 24">
-                          <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                        </svg>
-                        {socialLoading === 'facebook' ? "Conectando..." : "Registrarse con Facebook"}
-                      </Button>
-                    </div>
-
-                    <div className="relative">
-                      <div className="absolute inset-0 flex items-center">
-                        <Separator className="w-full" />
-                      </div>
-                      <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-background px-2 text-muted-foreground">o regístrate con email</span>
-                      </div>
-                    </div>
-
-                    <form onSubmit={handleSignUp} className="space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="userType">Tipo de Usuario</Label>
-                        <Select value={userType} onValueChange={(value: 'customer' | 'owner') => setUserType(value)}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="customer">Cliente (Reservar canchas)</SelectItem>
-                            <SelectItem value="owner">Dueño de complejo</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="fullName">Nombre Completo</Label>
-                        <Input
-                          id="fullName"
-                          type="text"
-                          placeholder="Tu nombre completo"
-                          value={fullName}
-                          onChange={(e) => setFullName(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Teléfono</Label>
-                        <Input
-                          id="phone"
-                          type="tel"
-                          placeholder="388-123-4567"
-                          value={phone}
-                          onChange={(e) => setPhone(e.target.value)}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-email">Email</Label>
-                        <Input
-                          id="signup-email"
-                          type="email"
-                          placeholder="tu@email.com"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="signup-password">Contraseña</Label>
-                        <Input
-                          id="signup-password"
-                          type="password"
-                          placeholder="Mínimo 6 caracteres"
-                          value={password}
-                          onChange={(e) => setPassword(e.target.value)}
-                          required
-                          minLength={6}
-                        />
-                      </div>
-                      <Button 
-                        type="submit" 
-                        className="w-full" 
-                        disabled={loading}
-                      >
-                        {loading ? "Creando cuenta..." : "Crear Cuenta"}
-                      </Button>
-                    </form>
-                  </div>
-                </TabsContent>
-              </Tabs>
+              <div className="mt-8 p-4 bg-muted/30 rounded-lg">
+                <p className="text-sm text-muted-foreground text-center">
+                  Al continuar, aceptas nuestros términos de servicio y política de privacidad. 
+                  Después de ingresar, podrás elegir si eres cliente o propietario de complejo.
+                </p>
+              </div>
             </CardContent>
           </Card>
 

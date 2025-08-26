@@ -1,56 +1,61 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Calendar, DollarSign, Clock, AlertTriangle, CheckCircle, XCircle, RefreshCw } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Calendar, Clock, CreditCard, AlertTriangle, CheckCircle, Building2, User, Mail, Phone, Globe, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-interface SubscriptionComplex {
+interface SportComplex {
   id: string;
   name: string;
   address: string;
+  neighborhood?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  owner_id: string;
   payment_status: string;
-  subscription_expires_at?: string;
-  created_at: string;
+  subscription_expires_at: string | null;
+  is_approved: boolean;
   is_active: boolean;
+  created_at: string;
   profiles?: {
     full_name?: string;
     email?: string;
+    phone?: string;
+    role?: string;
   };
 }
 
 const AdminSubscriptions = () => {
-  const [complexes, setComplexes] = useState<SubscriptionComplex[]>([]);
+  const [complexes, setComplexes] = useState<SportComplex[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [extensionDays, setExtensionDays] = useState<string>("30");
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchSubscriptions();
+    fetchComplexes();
   }, []);
 
-  const fetchSubscriptions = async () => {
+  const fetchComplexes = async () => {
     try {
       setLoading(true);
       const { data, error } = await supabase
         .from('sport_complexes')
         .select(`
-          id,
-          name,
-          address,
-          payment_status,
-          subscription_expires_at,
-          created_at,
-          is_active,
+          *,
           profiles:owner_id (
             full_name,
-            email
+            email,
+            phone,
+            role
           )
         `)
         .eq('is_approved', true)
@@ -61,7 +66,7 @@ const AdminSubscriptions = () => {
     } catch (error: any) {
       toast({
         title: "Error",
-        description: "No se pudieron cargar las suscripciones: " + error.message,
+        description: "No se pudieron cargar los complejos: " + error.message,
         variant: "destructive",
       });
     } finally {
@@ -69,36 +74,38 @@ const AdminSubscriptions = () => {
     }
   };
 
-  const updateSubscription = async (
-    complexId: string, 
-    status: string, 
-    expirationDate?: string
-  ) => {
+  const updateSubscriptionStatus = async (complexId: string, newStatus: string, daysToAdd?: number) => {
     try {
       setProcessingId(complexId);
-
-      const updateData: any = {
-        payment_status: status,
-        is_active: status === 'active' || status === 'trial',
+      
+      let updates: any = {
+        payment_status: newStatus,
       };
 
-      if (expirationDate) {
-        updateData.subscription_expires_at = expirationDate;
+      if (daysToAdd) {
+        const currentExpiry = complexes.find(c => c.id === complexId)?.subscription_expires_at;
+        const baseDate = currentExpiry && new Date(currentExpiry) > new Date() 
+          ? new Date(currentExpiry)
+          : new Date();
+        
+        const newExpiryDate = new Date(baseDate);
+        newExpiryDate.setDate(newExpiryDate.getDate() + daysToAdd);
+        updates.subscription_expires_at = newExpiryDate.toISOString();
       }
 
       const { error } = await supabase
         .from('sport_complexes')
-        .update(updateData)
+        .update(updates)
         .eq('id', complexId);
 
       if (error) throw error;
 
       toast({
-        title: "Suscripción Actualizada",
+        title: "Suscripción actualizada",
         description: "El estado de la suscripción ha sido actualizado correctamente.",
       });
 
-      fetchSubscriptions();
+      fetchComplexes();
     } catch (error: any) {
       toast({
         title: "Error",
@@ -110,65 +117,43 @@ const AdminSubscriptions = () => {
     }
   };
 
-  const extendTrial = async (complexId: string, days: number) => {
-    const newExpirationDate = new Date();
-    newExpirationDate.setDate(newExpirationDate.getDate() + days);
-    
-    await updateSubscription(
-      complexId, 
-      'trial', 
-      newExpirationDate.toISOString()
-    );
-  };
-
-  const activateSubscription = async (complexId: string, months: number) => {
-    const newExpirationDate = new Date();
-    newExpirationDate.setMonth(newExpirationDate.getMonth() + months);
-    
-    await updateSubscription(
-      complexId, 
-      'active', 
-      newExpirationDate.toISOString()
-    );
-  };
-
-  const getStatusBadge = (status: string, expirationDate?: string) => {
-    const now = new Date();
-    const expiration = expirationDate ? new Date(expirationDate) : null;
-    const isExpired = expiration && expiration < now;
-
-    switch (status) {
-      case 'trial':
-        return (
-          <Badge variant={isExpired ? "destructive" : "secondary"}>
-            {isExpired ? 'Prueba Expirada' : 'Período de Prueba'}
-          </Badge>
-        );
-      case 'active':
-        return (
-          <Badge variant={isExpired ? "destructive" : "default"}>
-            {isExpired ? 'Suscripción Expirada' : 'Activo'}
-          </Badge>
-        );
-      case 'expired':
-        return <Badge variant="destructive">Expirado</Badge>;
-      case 'cancelled':
-        return <Badge variant="outline">Cancelado</Badge>;
-      case 'pending':
-        return <Badge variant="secondary">Pendiente</Badge>;
-      default:
-        return <Badge variant="secondary">Desconocido</Badge>;
+  const activateSubscription = (complexId: string) => {
+    const days = parseInt(extensionDays);
+    if (days > 0) {
+      updateSubscriptionStatus(complexId, 'active', days);
     }
   };
 
-  const getDaysUntilExpiration = (expirationDate?: string) => {
-    if (!expirationDate) return null;
-    
+  const suspendSubscription = (complexId: string) => {
+    updateSubscriptionStatus(complexId, 'suspended');
+  };
+
+  const getStatusBadge = (complex: SportComplex) => {
     const now = new Date();
-    const expiration = new Date(expirationDate);
-    const diffTime = expiration.getTime() - now.getTime();
+    const expiryDate = complex.subscription_expires_at ? new Date(complex.subscription_expires_at) : null;
+    const isExpired = expiryDate && expiryDate <= now;
+
+    if (complex.payment_status === 'suspended') {
+      return <Badge variant="destructive">Suspendida</Badge>;
+    }
+    if (isExpired) {
+      return <Badge variant="destructive">Vencida</Badge>;
+    }
+    if (complex.payment_status === 'trial') {
+      return <Badge variant="secondary">Período de Prueba</Badge>;
+    }
+    if (complex.payment_status === 'active') {
+      return <Badge variant="default">Activa</Badge>;
+    }
+    return <Badge variant="outline">Pendiente</Badge>;
+  };
+
+  const getDaysUntilExpiry = (expiryDate: string | null) => {
+    if (!expiryDate) return null;
+    const now = new Date();
+    const expiry = new Date(expiryDate);
+    const diffTime = expiry.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
     return diffDays;
   };
 
@@ -180,163 +165,197 @@ const AdminSubscriptions = () => {
     });
   };
 
-  const SubscriptionCard = ({ complex }: { complex: SubscriptionComplex }) => {
-    const [selectedAction, setSelectedAction] = useState<string>("");
-    const [customDays, setCustomDays] = useState<string>("30");
-    const daysUntilExpiration = getDaysUntilExpiration(complex.subscription_expires_at);
-    const isExpiringSoon = daysUntilExpiration !== null && daysUntilExpiration <= 7 && daysUntilExpiration > 0;
-    const isExpired = daysUntilExpiration !== null && daysUntilExpiration <= 0;
+  const ComplexSubscriptionCard = ({ complex }: { complex: SportComplex }) => {
+    const daysUntilExpiry = getDaysUntilExpiry(complex.subscription_expires_at);
+    const isExpiringSoon = daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
+    const isExpired = daysUntilExpiry !== null && daysUntilExpiry <= 0;
 
     return (
-      <Card className={`w-full ${isExpiringSoon ? 'border-orange-200 bg-orange-50/50' : ''} ${isExpired ? 'border-red-200 bg-red-50/50' : ''}`}>
+      <Card className={`w-full ${isExpired ? 'border-red-200 bg-red-50/30' : isExpiringSoon ? 'border-yellow-200 bg-yellow-50/30' : ''}`}>
         <CardHeader>
           <div className="flex items-start justify-between">
-            <div className="space-y-2">
-              <CardTitle className="text-lg">{complex.name}</CardTitle>
-              <CardDescription>{complex.address}</CardDescription>
-              <div className="text-sm text-muted-foreground">
-                Propietario: {complex.profiles?.full_name || complex.profiles?.email || 'Sin datos'}
+            <div className="space-y-2 flex-1">
+              <CardTitle className="flex items-center space-x-2">
+                <Building2 className="w-5 h-5" />
+                <span>{complex.name}</span>
+              </CardTitle>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                <span>{complex.address}</span>
+                {complex.neighborhood && <span>- {complex.neighborhood}</span>}
               </div>
             </div>
-            {getStatusBadge(complex.payment_status, complex.subscription_expires_at)}
+            {getStatusBadge(complex)}
           </div>
         </CardHeader>
         
         <CardContent className="space-y-4">
+          {/* Owner Information */}
+          <div className="flex items-center space-x-3 p-3 bg-muted/50 rounded-lg">
+            <Avatar>
+              <AvatarFallback>
+                {complex.profiles?.full_name?.[0] || complex.profiles?.email?.[0] || 'U'}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <p className="font-medium">{complex.profiles?.full_name || 'Sin nombre'}</p>
+              <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                <Mail className="w-3 h-3" />
+                <span>{complex.profiles?.email}</span>
+              </div>
+              {complex.profiles?.phone && (
+                <div className="flex items-center space-x-2 text-sm text-muted-foreground">
+                  <Phone className="w-3 h-3" />
+                  <span>{complex.profiles.phone}</span>
+                </div>
+              )}
+              <Badge variant="outline" className="text-xs mt-1">
+                {complex.profiles?.role || 'owner'}
+              </Badge>
+            </div>
+          </div>
+
           {/* Subscription Details */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Calendar className="w-4 h-4 text-muted-foreground" />
-                <span>Registrado: {formatDate(complex.created_at)}</span>
+                <div>
+                  <p className="text-sm font-medium">Fecha de registro</p>
+                  <p className="text-xs text-muted-foreground">{formatDate(complex.created_at)}</p>
+                </div>
               </div>
+              
               {complex.subscription_expires_at && (
                 <div className="flex items-center space-x-2">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span>Expira: {formatDate(complex.subscription_expires_at)}</span>
+                  <div>
+                    <p className="text-sm font-medium">
+                      {isExpired ? 'Venció el' : 'Vence el'}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatDate(complex.subscription_expires_at)}
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
-            
-            <div className="space-y-2">
-              {daysUntilExpiration !== null && (
-                <div className={`flex items-center space-x-2 ${
-                  isExpired ? 'text-red-600' : isExpiringSoon ? 'text-orange-600' : 'text-green-600'
-                }`}>
+
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <CreditCard className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <p className="text-sm font-medium">Estado de pago</p>
+                  <p className="text-xs text-muted-foreground capitalize">{complex.payment_status}</p>
+                </div>
+              </div>
+
+              {daysUntilExpiry !== null && (
+                <div className="flex items-center space-x-2">
                   {isExpired ? (
-                    <XCircle className="w-4 h-4" />
+                    <AlertTriangle className="w-4 h-4 text-red-500" />
                   ) : isExpiringSoon ? (
-                    <AlertTriangle className="w-4 h-4" />
+                    <AlertTriangle className="w-4 h-4 text-yellow-500" />
                   ) : (
-                    <CheckCircle className="w-4 h-4" />
+                    <CheckCircle className="w-4 h-4 text-green-500" />
                   )}
-                  <span className="font-medium">
-                    {isExpired 
-                      ? `Expiró hace ${Math.abs(daysUntilExpiration)} días`
-                      : `${daysUntilExpiration} días restantes`
-                    }
-                  </span>
+                  <div>
+                    <p className="text-sm font-medium">
+                      {isExpired ? 'Vencida hace' : 'Días restantes'}
+                    </p>
+                    <p className={`text-xs ${isExpired || isExpiringSoon ? 'text-red-600' : 'text-green-600'}`}>
+                      {Math.abs(daysUntilExpiry)} días
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => extendTrial(complex.id, 15)}
-              disabled={processingId === complex.id}
-            >
-              <RefreshCw className="w-4 h-4 mr-2" />
-              +15 días prueba
-            </Button>
-            
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => activateSubscription(complex.id, 1)}
-              disabled={processingId === complex.id}
-            >
-              <DollarSign className="w-4 h-4 mr-2" />
-              Activar 1 mes
-            </Button>
-
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button size="sm" variant="outline">
-                  Acciones Avanzadas
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Gestionar Suscripción</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Administra la suscripción de "{complex.name}"
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="action">Acción</Label>
-                    <Select value={selectedAction} onValueChange={setSelectedAction}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Seleccionar acción" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="extend-trial">Extender período de prueba</SelectItem>
-                        <SelectItem value="activate">Activar suscripción</SelectItem>
-                        <SelectItem value="suspend">Suspender temporalmente</SelectItem>
-                        <SelectItem value="cancel">Cancelar suscripción</SelectItem>
-                      </SelectContent>
-                    </Select>
+          {/* Contact Information */}
+          {(complex.phone || complex.email || complex.website) && (
+            <div className="p-3 bg-muted/30 rounded-lg">
+              <p className="font-medium mb-2 text-sm">Información de contacto del complejo</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                {complex.phone && (
+                  <div className="flex items-center space-x-2">
+                    <Phone className="w-3 h-3" />
+                    <span>{complex.phone}</span>
                   </div>
+                )}
+                {complex.email && (
+                  <div className="flex items-center space-x-2">
+                    <Mail className="w-3 h-3" />
+                    <span>{complex.email}</span>
+                  </div>
+                )}
+                {complex.website && (
+                  <div className="flex items-center space-x-2 col-span-2">
+                    <Globe className="w-3 h-3" />
+                    <span className="truncate">{complex.website}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
-                  {(selectedAction === 'extend-trial' || selectedAction === 'activate') && (
-                    <div className="space-y-2">
-                      <Label htmlFor="days">
-                        {selectedAction === 'extend-trial' ? 'Días adicionales' : 'Días de suscripción'}
-                      </Label>
-                      <Input
-                        id="days"
-                        type="number"
-                        value={customDays}
-                        onChange={(e) => setCustomDays(e.target.value)}
-                        placeholder="30"
-                        min="1"
-                        max="365"
-                      />
-                    </div>
-                  )}
-                </div>
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2 pt-4 border-t">
+            {(isExpired || isExpiringSoon || complex.payment_status === 'trial') && (
+              <div className="flex items-center space-x-2 flex-1">
+                <Select value={extensionDays} onValueChange={setExtensionDays}>
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="15">15 días</SelectItem>
+                    <SelectItem value="30">30 días</SelectItem>
+                    <SelectItem value="60">60 días</SelectItem>
+                    <SelectItem value="90">90 días</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Button
+                  onClick={() => activateSubscription(complex.id)}
+                  disabled={processingId === complex.id}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  Activar
+                </Button>
+              </div>
+            )}
 
-                <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setSelectedAction("")}>
-                    Cancelar
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={() => {
-                      const days = parseInt(customDays) || 30;
-                      if (selectedAction === 'extend-trial') {
-                        extendTrial(complex.id, days);
-                      } else if (selectedAction === 'activate') {
-                        const months = Math.ceil(days / 30);
-                        activateSubscription(complex.id, months);
-                      } else if (selectedAction === 'suspend') {
-                        updateSubscription(complex.id, 'suspended');
-                      } else if (selectedAction === 'cancel') {
-                        updateSubscription(complex.id, 'cancelled');
-                      }
-                      setSelectedAction("");
-                    }}
-                    disabled={!selectedAction}
+            {complex.payment_status === 'active' && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="destructive"
+                    disabled={processingId === complex.id}
                   >
-                    Aplicar
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    Suspender
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Suspender Suscripción</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      ¿Estás seguro de que quieres suspender la suscripción de "{complex.name}"? 
+                      El complejo dejará de estar visible para los usuarios.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => suspendSubscription(complex.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Suspender
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -364,84 +383,159 @@ const AdminSubscriptions = () => {
     );
   }
 
-  const trialComplexes = complexes.filter(c => c.payment_status === 'trial');
-  const activeComplexes = complexes.filter(c => c.payment_status === 'active');
-  const expiredComplexes = complexes.filter(c => 
-    c.payment_status === 'expired' || 
-    (c.subscription_expires_at && new Date(c.subscription_expires_at) < new Date())
-  );
-  const expiringSoon = complexes.filter(c => {
-    const days = getDaysUntilExpiration(c.subscription_expires_at);
-    return days !== null && days <= 7 && days > 0;
+  // Filter complexes by status
+  const activeComplexes = complexes.filter(c => {
+    const now = new Date();
+    const expiryDate = c.subscription_expires_at ? new Date(c.subscription_expires_at) : null;
+    return c.payment_status === 'active' && expiryDate && expiryDate > now;
+  });
+
+  const trialComplexes = complexes.filter(c => {
+    const now = new Date();
+    const expiryDate = c.subscription_expires_at ? new Date(c.subscription_expires_at) : null;
+    return c.payment_status === 'trial' && expiryDate && expiryDate > now;
+  });
+
+  const expiredComplexes = complexes.filter(c => {
+    const now = new Date();
+    const expiryDate = c.subscription_expires_at ? new Date(c.subscription_expires_at) : null;
+    return (expiryDate && expiryDate <= now) || c.payment_status === 'suspended';
+  });
+
+  const expiringSoonComplexes = complexes.filter(c => {
+    const daysUntilExpiry = getDaysUntilExpiry(c.subscription_expires_at);
+    return daysUntilExpiry !== null && daysUntilExpiry <= 7 && daysUntilExpiry > 0;
   });
 
   return (
-    <Tabs defaultValue="expiring" className="space-y-6">
-      <TabsList>
-        <TabsTrigger value="expiring" className="relative">
-          Expiran Pronto
-          {expiringSoon.length > 0 && (
-            <Badge variant="destructive" className="ml-2 h-4 w-4 p-0 text-xs">
-              {expiringSoon.length}
-            </Badge>
-          )}
-        </TabsTrigger>
-        <TabsTrigger value="trial">
-          Período Prueba ({trialComplexes.length})
-        </TabsTrigger>
-        <TabsTrigger value="active">
-          Activos ({activeComplexes.length})
-        </TabsTrigger>
-        <TabsTrigger value="expired">
-          Expirados ({expiredComplexes.length})
-        </TabsTrigger>
-        <TabsTrigger value="all">
-          Todos ({complexes.length})
-        </TabsTrigger>
-      </TabsList>
+    <div className="space-y-6">
+      {/* Summary Cards */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="border-green-200 bg-green-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-green-600" />
+              Suscripciones Activas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-700">{activeComplexes.length}</div>
+          </CardContent>
+        </Card>
 
-      <TabsContent value="expiring" className="space-y-4">
-        {expiringSoon.length === 0 ? (
-          <Card>
-            <CardContent className="flex items-center justify-center py-12">
-              <div className="text-center space-y-2">
-                <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
-                <h3 className="text-lg font-medium">¡Excelente!</h3>
-                <p className="text-muted-foreground">No hay suscripciones expirando pronto.</p>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          expiringSoon.map((complex) => (
-            <SubscriptionCard key={complex.id} complex={complex} />
-          ))
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Clock className="w-4 h-4 text-blue-600" />
+              Períodos de Prueba
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-700">{trialComplexes.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-yellow-200 bg-yellow-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-yellow-600" />
+              Por Vencer (7 días)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-700">{expiringSoonComplexes.length}</div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-red-200 bg-red-50/50">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-600" />
+              Vencidas/Suspendidas
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-700">{expiredComplexes.length}</div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Subscription Management */}
+      <div className="space-y-6">
+        {/* Expired/Suspended - High Priority */}
+        {expiredComplexes.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-red-600" />
+              Requieren Atención Inmediata ({expiredComplexes.length})
+            </h3>
+            <div className="space-y-4">
+              {expiredComplexes.map((complex) => (
+                <ComplexSubscriptionCard key={complex.id} complex={complex} />
+              ))}
+            </div>
+          </div>
         )}
-      </TabsContent>
 
-      <TabsContent value="trial" className="space-y-4">
-        {trialComplexes.map((complex) => (
-          <SubscriptionCard key={complex.id} complex={complex} />
-        ))}
-      </TabsContent>
+        {/* Expiring Soon - Medium Priority */}
+        {expiringSoonComplexes.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-yellow-600" />
+              Vencen Pronto - 7 días o menos ({expiringSoonComplexes.length})
+            </h3>
+            <div className="space-y-4">
+              {expiringSoonComplexes.map((complex) => (
+                <ComplexSubscriptionCard key={complex.id} complex={complex} />
+              ))}
+            </div>
+          </div>
+        )}
 
-      <TabsContent value="active" className="space-y-4">
-        {activeComplexes.map((complex) => (
-          <SubscriptionCard key={complex.id} complex={complex} />
-        ))}
-      </TabsContent>
+        {/* Trial Subscriptions */}
+        {trialComplexes.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5 text-blue-600" />
+              Períodos de Prueba Activos ({trialComplexes.length})
+            </h3>
+            <div className="space-y-4">
+              {trialComplexes.map((complex) => (
+                <ComplexSubscriptionCard key={complex.id} complex={complex} />
+              ))}
+            </div>
+          </div>
+        )}
 
-      <TabsContent value="expired" className="space-y-4">
-        {expiredComplexes.map((complex) => (
-          <SubscriptionCard key={complex.id} complex={complex} />
-        ))}
-      </TabsContent>
+        {/* Active Subscriptions */}
+        {activeComplexes.length > 0 && (
+          <div>
+            <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5 text-green-600" />
+              Suscripciones Activas ({activeComplexes.length})
+            </h3>
+            <div className="space-y-4">
+              {activeComplexes.map((complex) => (
+                <ComplexSubscriptionCard key={complex.id} complex={complex} />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
-      <TabsContent value="all" className="space-y-4">
-        {complexes.map((complex) => (
-          <SubscriptionCard key={complex.id} complex={complex} />
-        ))}
-      </TabsContent>
-    </Tabs>
+      {/* No data state */}
+      {complexes.length === 0 && (
+        <Card>
+          <CardContent className="flex items-center justify-center py-12">
+            <div className="text-center space-y-2">
+              <Building2 className="w-12 h-12 text-muted-foreground mx-auto" />
+              <h3 className="text-lg font-medium">No hay complejos registrados</h3>
+              <p className="text-muted-foreground">Los complejos aprobados aparecerán aquí.</p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 

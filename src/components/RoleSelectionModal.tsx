@@ -101,18 +101,28 @@ export const RoleSelectionModal = ({ isOpen, onClose, userEmail, userName }: Rol
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="role">Tipo de Usuario</Label>
-            <Select value={role} onValueChange={(value: 'customer' | 'owner') => setRole(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="customer">Cliente (Reservar canchas)</SelectItem>
-                <SelectItem value="owner">Dueño de complejo</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="space-y-2">
+          <Label htmlFor="role">Tipo de Usuario</Label>
+          <Select value={role} onValueChange={(value: 'customer' | 'owner') => setRole(value)}>
+            <SelectTrigger className="h-11">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="customer">
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Cliente</span>
+                  <span className="text-xs text-muted-foreground">Reservar canchas deportivas</span>
+                </div>
+              </SelectItem>
+              <SelectItem value="owner">
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Propietario de Complejo</span>
+                  <span className="text-xs text-muted-foreground">Gestionar mi complejo deportivo</span>
+                </div>
+              </SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
           <div className="space-y-2">
             <Label htmlFor="phone">Teléfono (opcional)</Label>
