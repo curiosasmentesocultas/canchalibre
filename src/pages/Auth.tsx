@@ -12,6 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { LogIn, UserPlus, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { RoleSelectionModal } from "@/components/RoleSelectionModal";
 
 const Auth = () => {
   const [email, setEmail] = useState("");
@@ -22,18 +23,63 @@ const Auth = () => {
   const [loading, setLoading] = useState(false);
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [pendingSocialUser, setPendingSocialUser] = useState<{email: string, name: string} | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check if user is already logged in
+    // Check if user is already logged in and handle social login completion
     const checkUser = async () => {
       const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/");
+      if (session?.user) {
+        // Check if this is a new social user without role
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, full_name')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (!profile?.role || profile.role === 'customer') {
+          // Show role selection modal for new social users or users without proper role
+          const userName = profile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+          setPendingSocialUser({
+            email: session.user.email || '',
+            name: userName
+          });
+          setShowRoleModal(true);
+        } else {
+          navigate("/");
+        }
       }
     };
+
     checkUser();
+
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        // Check if this is a social login and needs role selection
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role, full_name')
+          .eq('user_id', session.user.id)
+          .single();
+
+        if (!profile?.role) {
+          const userName = session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
+          setPendingSocialUser({
+            email: session.user.email || '',
+            name: userName
+          });
+          setShowRoleModal(true);
+        } else {
+          navigate("/");
+        }
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, [navigate]);
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -42,13 +88,16 @@ const Auth = () => {
     setError("");
 
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      // Use the actual production URL
+      const baseUrl = window.location.hostname === 'localhost' 
+        ? window.location.origin 
+        : 'https://canchalibre.lovable.app';
       
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: `${baseUrl}/`,
           data: {
             full_name: fullName,
             phone: phone,
@@ -57,11 +106,18 @@ const Auth = () => {
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("User already registered")) {
+          setError("Ya existe una cuenta con este email. Intenta iniciar sesión.");
+        } else {
+          throw error;
+        }
+        return;
+      }
 
       toast({
         title: "¡Registro exitoso!",
-        description: "Revisa tu email para confirmar tu cuenta.",
+        description: "Revisa tu email para confirmar tu cuenta. El enlace puede tardar unos minutos en llegar.",
       });
 
       // Switch to signin tab after successful registration
@@ -81,10 +137,15 @@ const Auth = () => {
     setError("");
 
     try {
+      // Use the actual production URL
+      const baseUrl = window.location.hostname === 'localhost' 
+        ? window.location.origin 
+        : 'https://canchalibre.lovable.app';
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${window.location.origin}/`,
+          redirectTo: `${baseUrl}/auth`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -93,6 +154,8 @@ const Auth = () => {
       });
 
       if (error) throw error;
+      
+      // Don't reset loading here - let the auth state change handle it
     } catch (error: any) {
       setError(error.message);
       setSocialLoading(null);
@@ -375,6 +438,20 @@ const Auth = () => {
             </a>
           </div>
         </div>
+
+        {/* Role Selection Modal for Social Users */}
+        {showRoleModal && pendingSocialUser && (
+          <RoleSelectionModal
+            isOpen={showRoleModal}
+            onClose={() => {
+              setShowRoleModal(false);
+              setPendingSocialUser(null);
+              navigate("/");
+            }}
+            userEmail={pendingSocialUser.email}
+            userName={pendingSocialUser.name}
+          />
+        )}
       </div>
     </>
   );
