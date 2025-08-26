@@ -111,6 +111,12 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
+                      <Link to="/my-reservations">
+                        <User className="mr-2 h-4 w-4" />
+                        Mis Reservas
+                      </Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
                       <Link to="/dashboard">
                         <Settings className="mr-2 h-4 w-4" />
                         Mis Complejos
