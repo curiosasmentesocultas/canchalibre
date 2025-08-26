@@ -13,6 +13,7 @@ import {
 import { MapPin, Search, Filter, Menu, X, User, LogOut, Settings } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 
 const sports = [
   { id: "todos", name: "Todos", icon: "🏆" },
@@ -34,6 +35,7 @@ interface HeaderProps {
 const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const { isOwner } = useProfile();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -84,6 +86,7 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
             
             {user ? (
               <>
+                {isOwner && (
                   <Button 
                     asChild 
                     size="sm" 
@@ -93,6 +96,7 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
                       Registrar Cancha
                     </Link>
                   </Button>
+                )}
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -116,12 +120,14 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
                         Mis Reservas
                       </Link>
                     </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link to="/dashboard">
-                        <Settings className="mr-2 h-4 w-4" />
-                        Mis Complejos
-                      </Link>
-                    </DropdownMenuItem>
+                    {isOwner && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/dashboard">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Mis Complejos
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut}>
                       <LogOut className="mr-2 h-4 w-4" />
@@ -224,11 +230,13 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
               
               {user ? (
                 <>
-                  <Button asChild className="bg-gradient-sport justify-start">
-                    <Link to="/register-complex">
-                      Registrar Mi Cancha
-                    </Link>
-                  </Button>
+                  {isOwner && (
+                    <Button asChild className="bg-gradient-sport justify-start">
+                      <Link to="/register-complex">
+                        Registrar Mi Cancha
+                      </Link>
+                    </Button>
+                  )}
                   <Button variant="outline" className="justify-start" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Cerrar Sesión ({user.email})

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useComplexes } from "@/hooks/useComplexes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,6 +21,7 @@ import {
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { isOwner, loading: profileLoading } = useProfile();
   const { complexes, loading } = useComplexes();
   const navigate = useNavigate();
   
@@ -31,6 +33,15 @@ const Dashboard = () => {
 
   if (!user) {
     navigate('/auth');
+    return null;
+  }
+
+  if (profileLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  }
+
+  if (!isOwner) {
+    navigate('/');
     return null;
   }
 

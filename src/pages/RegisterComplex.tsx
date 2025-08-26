@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { useToast } from "@/hooks/use-toast";
 
 type SportType = "futbol" | "basquet" | "tenis" | "voley" | "handball" | "skate";
@@ -38,6 +39,7 @@ interface Court {
 
 const RegisterComplex = () => {
   const { user, loading: authLoading } = useAuth();
+  const { isOwner, loading: profileLoading } = useProfile();
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -88,10 +90,14 @@ const RegisterComplex = () => {
   ];
 
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/auth");
+    if (!authLoading && !profileLoading) {
+      if (!user) {
+        navigate("/auth");
+      } else if (!isOwner) {
+        navigate("/");
+      }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, profileLoading, isOwner, navigate]);
 
   const addCourt = () => {
     if (!currentCourt.name || !currentCourt.sport) {
@@ -132,7 +138,7 @@ const RegisterComplex = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user || !isOwner) return;
 
     if (courts.length === 0) {
       toast({
@@ -212,8 +218,18 @@ const RegisterComplex = () => {
     }
   };
 
-  if (authLoading) {
-    return <div>Cargando...</div>;
+  if (authLoading || profileLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Cargando...</div>;
+  }
+
+  if (!user) {
+    navigate('/auth');
+    return null;
+  }
+
+  if (!isOwner) {
+    navigate('/');
+    return null;
   }
 
   return (
