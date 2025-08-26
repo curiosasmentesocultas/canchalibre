@@ -35,7 +35,7 @@ interface HeaderProps {
 const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: HeaderProps) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { user, signOut } = useAuth();
-  const { isOwner } = useProfile();
+  const { isOwner, isAdmin } = useProfile();
   const navigate = useNavigate();
 
   const handleSignOut = async () => {
@@ -125,6 +125,14 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
                         <Link to="/dashboard">
                           <Settings className="mr-2 h-4 w-4" />
                           Mis Complejos
+                        </Link>
+                      </DropdownMenuItem>
+                    )}
+                    {isAdmin && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/admin">
+                          <Settings className="mr-2 h-4 w-4" />
+                          Panel Admin
                         </Link>
                       </DropdownMenuItem>
                     )}
