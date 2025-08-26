@@ -63,6 +63,12 @@ const Auth = () => {
         title: "¡Registro exitoso!",
         description: "Revisa tu email para confirmar tu cuenta.",
       });
+
+      // Switch to signin tab after successful registration
+      const signInTab = document.querySelector('[value="signin"]') as HTMLElement;
+      if (signInTab) {
+        signInTab.click();
+      }
     } catch (error: any) {
       setError(error.message);
     } finally {
@@ -359,7 +365,14 @@ const Auth = () => {
           </Card>
 
           <div className="text-center mt-6 text-sm text-muted-foreground">
-            Al crear una cuenta, aceptas nuestros términos y condiciones
+            Al crear una cuenta, aceptas nuestros{" "}
+            <a href="/terms-of-service" className="text-primary hover:underline">
+              términos y condiciones
+            </a>{" "}
+            y nuestra{" "}
+            <a href="/privacy-policy" className="text-primary hover:underline">
+              política de privacidad
+            </a>
           </div>
         </div>
       </div>
