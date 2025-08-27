@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -22,14 +22,17 @@ import {
 const Dashboard = () => {
   const { user } = useAuth();
   const { isOwner, loading: profileLoading } = useProfile();
-  const { complexes, loading } = useComplexes();
+  const { complexes, loading, fetchOwnerComplexes } = useComplexes();
   const navigate = useNavigate();
   
-  // Filter complexes owned by current user
-  const userComplexes = complexes.filter(complex => 
-    // This would need proper owner filtering based on user profile
-    complex.is_active // Placeholder filter
-  );
+  // Load owner's complexes when user is available
+  useEffect(() => {
+    if (user && isOwner) {
+      fetchOwnerComplexes(user.id);
+    }
+  }, [user, isOwner]);
+  
+  const userComplexes = complexes;
 
   if (!user) {
     navigate('/auth');

@@ -103,7 +103,7 @@ export const useReservations = () => {
     try {
       const { data, error } = await supabase
         .from('reservations')
-        .select('id')
+        .select('start_time, end_time')
         .eq('court_id', courtId)
         .eq('reservation_date', date)
         .neq('payment_status', 'cancelled');

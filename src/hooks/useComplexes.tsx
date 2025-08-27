@@ -77,9 +77,50 @@ export const useComplexes = () => {
     }
   };
 
+  const fetchOwnerComplexes = async (userId: string) => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('sport_complexes')
+        .select(`
+          *,
+          sport_courts (*),
+          profiles!sport_complexes_owner_id_fkey (user_id)
+        `)
+        .eq('profiles.user_id', userId);
+
+      if (error) throw error;
+
+      const formattedComplexes: SportComplexData[] = data?.map((complex: any) => ({
+        id: complex.id,
+        name: complex.name,
+        address: complex.address,
+        neighborhood: complex.neighborhood,
+        phone: complex.phone,
+        whatsapp: complex.whatsapp,
+        email: complex.email,
+        website: complex.website,
+        photos: complex.photos || [],
+        amenities: complex.amenities || [],
+        opening_hours: complex.opening_hours,
+        is_active: complex.is_active,
+        is_approved: complex.is_approved,
+        latitude: complex.latitude,
+        longitude: complex.longitude,
+        courts: complex.sport_courts || [],
+      })) || [];
+
+      setComplexes(formattedComplexes);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchComplexes();
   }, []);
 
-  return { complexes, loading, error, refetch: fetchComplexes };
+  return { complexes, loading, error, refetch: fetchComplexes, fetchOwnerComplexes };
 };
