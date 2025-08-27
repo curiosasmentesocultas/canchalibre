@@ -1,20 +1,15 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
-import { LogIn, UserPlus, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { RoleSelectionModal } from "@/components/RoleSelectionModal";
 
-const Auth = () => {
+const OwnersAuth = () => {
   const [socialLoading, setSocialLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [showRoleModal, setShowRoleModal] = useState(false);
@@ -35,13 +30,15 @@ const Auth = () => {
           .single();
 
         if (!profile?.role || profile.role === 'customer') {
-          // Show role selection modal for new social users or users without proper role
+          // Force role selection for owners
           const userName = profile?.full_name || session.user.user_metadata?.full_name || session.user.user_metadata?.name || '';
           setPendingSocialUser({
             email: session.user.email || '',
             name: userName
           });
           setShowRoleModal(true);
+        } else if (profile.role === 'owner') {
+          navigate("/dashboard");
         } else {
           navigate("/");
         }
@@ -67,6 +64,8 @@ const Auth = () => {
             name: userName
           });
           setShowRoleModal(true);
+        } else if (profile.role === 'owner') {
+          navigate("/dashboard");
         } else {
           navigate("/");
         }
@@ -89,7 +88,7 @@ const Auth = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${baseUrl}/auth`,
+          redirectTo: `${baseUrl}/owners/auth`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -106,15 +105,14 @@ const Auth = () => {
     }
   };
 
-
   return (
     <>
       <Helmet>
-        <title>Iniciar Sesión - Canchas Jujuy</title>
-        <meta name="description" content="Accede a tu cuenta en Canchas Jujuy para gestionar tu complejo deportivo o crear una nueva cuenta." />
+        <title>Portal Propietarios - Canchas Jujuy</title>
+        <meta name="description" content="Acceso exclusivo para propietarios de complejos deportivos. Gestiona tu negocio con Canchas Jujuy." />
       </Helmet>
 
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-secondary/5 via-background to-primary/5 flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Header */}
           <div className="text-center mb-8">
@@ -124,19 +122,22 @@ const Auth = () => {
               </div>
               <span className="text-3xl font-bold text-foreground">Canchas Jujuy</span>
             </div>
+            <h1 className="text-2xl font-bold text-foreground mb-2">
+              Portal de Propietarios
+            </h1>
             <p className="text-muted-foreground text-lg">
-              Encuentra y reserva canchas deportivas
+              Gestiona tu complejo deportivo
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              Acceso para clientes que buscan canchas
+              Acceso exclusivo para dueños de complejos
             </p>
           </div>
 
           <Card className="shadow-card-custom border-0">
             <CardHeader className="pb-6 text-center">
-              <CardTitle className="text-2xl text-foreground">¡Bienvenido Cliente!</CardTitle>
+              <CardTitle className="text-2xl text-foreground">¡Bienvenido Propietario!</CardTitle>
               <CardDescription className="text-base">
-                Ingresa para explorar y reservar canchas deportivas
+                Ingresa con tu cuenta para acceder al panel de gestión de tu complejo
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -189,38 +190,39 @@ const Auth = () => {
                 </Button>
               </div>
 
-              <div className="mt-8 p-4 bg-primary/10 rounded-lg">
-                <h3 className="font-semibold text-foreground mb-2">🎾 Para Clientes</h3>
+              <div className="mt-8 p-4 bg-secondary/20 rounded-lg">
+                <h3 className="font-semibold text-foreground mb-2">🏢 Portal Exclusivo</h3>
                 <p className="text-sm text-muted-foreground">
-                  Explora cientos de canchas deportivas, compara precios y horarios, 
-                  y contacta directamente con los propietarios por WhatsApp.
+                  Este es el acceso especial para propietarios de complejos deportivos. 
+                  Gestiona reservas, horarios, precios y analíticas de tu negocio.
                 </p>
               </div>
             </CardContent>
           </Card>
 
           <div className="text-center mt-6 text-sm text-muted-foreground">
-            ¿Tienes un complejo deportivo? {" "}
+            ¿Eres cliente? {" "}
             <button 
-              onClick={() => navigate("/owners/auth")}
+              onClick={() => navigate("/auth")}
               className="text-primary hover:underline font-medium"
             >
-              Acceso para propietarios
+              Ir al login de clientes
             </button>
           </div>
         </div>
 
-        {/* Role Selection Modal for Social Users */}
+        {/* Role Selection Modal for Social Users - Force owner role */}
         {showRoleModal && pendingSocialUser && (
           <RoleSelectionModal
             isOpen={showRoleModal}
             onClose={() => {
               setShowRoleModal(false);
               setPendingSocialUser(null);
-              navigate("/");
+              navigate("/dashboard");
             }}
             userEmail={pendingSocialUser.email}
             userName={pendingSocialUser.name}
+            forceRole="owner"
           />
         )}
       </div>
@@ -228,4 +230,4 @@ const Auth = () => {
   );
 };
 
-export default Auth;
+export default OwnersAuth;

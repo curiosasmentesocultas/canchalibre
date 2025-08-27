@@ -12,9 +12,10 @@ interface RoleSelectionModalProps {
   onClose: () => void;
   userEmail: string;
   userName: string;
+  forceRole?: 'customer' | 'owner';
 }
 
-export const RoleSelectionModal = ({ isOpen, onClose, userEmail, userName }: RoleSelectionModalProps) => {
+export const RoleSelectionModal = ({ isOpen, onClose, userEmail, userName, forceRole }: RoleSelectionModalProps) => {
   const [role, setRole] = useState<'customer' | 'owner'>('customer');
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);

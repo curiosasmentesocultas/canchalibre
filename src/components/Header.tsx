@@ -86,17 +86,6 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
             
             {user ? (
               <>
-                {isOwner && (
-                  <Button 
-                    asChild 
-                    size="sm" 
-                    className="bg-gradient-sport hover:shadow-sport transition-all"
-                  >
-                    <Link to="/register-complex">
-                      Registrar Cancha
-                    </Link>
-                  </Button>
-                )}
                 
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -238,13 +227,6 @@ const Header = ({ selectedSport, onSportChange, searchTerm, onSearchChange }: He
               
               {user ? (
                 <>
-                  {isOwner && (
-                    <Button asChild className="bg-gradient-sport justify-start">
-                      <Link to="/register-complex">
-                        Registrar Mi Cancha
-                      </Link>
-                    </Button>
-                  )}
                   <Button variant="outline" className="justify-start" onClick={handleSignOut}>
                     <LogOut className="w-4 h-4 mr-2" />
                     Cerrar Sesión ({user.email})

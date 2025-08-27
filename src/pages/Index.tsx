@@ -180,9 +180,11 @@ const Index = () => {
                     size="lg" 
                     variant="outline" 
                     className="border-white/30 text-white hover:bg-white/10 backdrop-blur-sm text-lg px-8 py-6"
-                    onClick={() => navigate('/register-complex')}
+                    onClick={() => {
+                      document.getElementById('contact-section')?.scrollIntoView({ behavior: 'smooth' });
+                    }}
                   >
-                    Registrar Mi Cancha
+                    Agregar Mi Complejo
                     <ArrowRight className="w-5 h-5 ml-2" />
                   </Button>
                 </div>
@@ -288,6 +290,79 @@ const Index = () => {
                   </Button>
                 </div>
               )}
+            </div>
+          </section>
+
+          {/* Contact Section for Complex Owners */}
+          <section id="contact-section" className="py-12 bg-gradient-to-b from-secondary/10 to-muted/30">
+            <div className="container mx-auto px-4">
+              <div className="max-w-4xl mx-auto text-center">
+                <div className="mb-8">
+                  <h2 className="text-3xl font-bold text-foreground mb-4">
+                    ¿Tienes un Complejo Deportivo?
+                  </h2>
+                  <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                    Únete a la red de complejos deportivos más grande de Jujuy y aumenta la visibilidad de tu negocio
+                  </p>
+                </div>
+
+                <Card className="p-8 shadow-card-custom border-0 bg-white/80 backdrop-blur-sm">
+                  <CardContent className="p-0 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {[
+                        {
+                          icon: "📱",
+                          title: "Gestión Digital",
+                          description: "Panel completo para gestionar reservas y horarios"
+                        },
+                        {
+                          icon: "💰",
+                          title: "Más Ingresos",
+                          description: "Aumenta la ocupación de tus canchas hasta 40%"
+                        },
+                        {
+                          icon: "📊",
+                          title: "Analíticas",
+                          description: "Reportes detallados de tu negocio y tendencias"
+                        }
+                      ].map((benefit, index) => (
+                        <div key={index} className="text-center space-y-3">
+                          <div className="text-4xl">{benefit.icon}</div>
+                          <h3 className="font-semibold text-foreground">{benefit.title}</h3>
+                          <p className="text-sm text-muted-foreground">{benefit.description}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-4 pt-4">
+                      <h3 className="text-xl font-semibold text-foreground">
+                        ¡Contáctanos para agregar tu complejo!
+                      </h3>
+                      <p className="text-muted-foreground">
+                        Nos pondremos en contacto contigo para configurar tu cuenta y agregar tu complejo a la plataforma
+                      </p>
+                      
+                      <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-4">
+                        <Button 
+                          size="lg" 
+                          className="bg-gradient-sport hover:shadow-sport transition-all text-lg px-8 py-6"
+                          onClick={() => window.open('https://wa.me/5493884123456?text=Hola! Tengo un complejo deportivo y me interesa unirme a Canchas Jujuy', '_blank')}
+                        >
+                          📱 WhatsApp: +54 388 412-3456
+                        </Button>
+                        <Button 
+                          size="lg" 
+                          variant="outline" 
+                          className="text-lg px-8 py-6"
+                          onClick={() => window.location.href = 'mailto:complejos@canchasjujuy.com?subject=Quiero agregar mi complejo'}
+                        >
+                          ✉️ complejos@canchasjujuy.com
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           </section>
 
