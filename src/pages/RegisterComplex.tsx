@@ -152,14 +152,29 @@ const RegisterComplex = () => {
     setLoading(true);
 
     try {
-      // Get user profile
-      const { data: profile } = await supabase
+      // Get or create user profile
+      let { data: profile } = await supabase
         .from('profiles')
         .select('id')
         .eq('user_id', user.id)
         .single();
 
-      if (!profile) throw new Error("Perfil no encontrado");
+      // If profile doesn't exist, create it
+      if (!profile) {
+        const { data: newProfile, error: createError } = await supabase
+          .from('profiles')
+          .insert({
+            user_id: user.id,
+            role: 'owner',
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+            email: user.email || ''
+          })
+          .select('id')
+          .single();
+
+        if (createError) throw createError;
+        profile = newProfile;
+      }
 
       // Create complex
       const { data: complex, error: complexError } = await supabase

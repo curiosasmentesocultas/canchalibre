@@ -37,17 +37,20 @@ export const RoleSelectionModal = ({ isOpen, onClose, userEmail, userName, force
 
       if (updateError) throw updateError;
 
-      // Update the profile in the database
+      // Create or update the profile in the database (upsert)
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         const { error: profileError } = await supabase
           .from('profiles')
-          .update({
-            role: role,
+          .upsert({
+            user_id: user.id,
+            role: forceRole || role,
             phone: phone,
-            full_name: userName
-          })
-          .eq('user_id', user.id);
+            full_name: userName,
+            email: userEmail
+          }, {
+            onConflict: 'user_id'
+          });
 
         if (profileError) throw profileError;
       }
@@ -102,28 +105,46 @@ export const RoleSelectionModal = ({ isOpen, onClose, userEmail, userName, force
             />
           </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="role">Tipo de Usuario</Label>
-          <Select value={role} onValueChange={(value: 'customer' | 'owner') => setRole(value)}>
-            <SelectTrigger className="h-11">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="customer">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Cliente</span>
-                  <span className="text-xs text-muted-foreground">Reservar canchas deportivas</span>
-                </div>
-              </SelectItem>
-              <SelectItem value="owner">
-                <div className="flex flex-col items-start">
-                  <span className="font-medium">Propietario de Complejo</span>
-                  <span className="text-xs text-muted-foreground">Gestionar mi complejo deportivo</span>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {!forceRole && (
+          <div className="space-y-2">
+            <Label htmlFor="role">Tipo de Usuario</Label>
+            <Select value={role} onValueChange={(value: 'customer' | 'owner') => setRole(value)}>
+              <SelectTrigger className="h-11">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="customer">
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Cliente</span>
+                    <span className="text-xs text-muted-foreground">Reservar canchas deportivas</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="owner">
+                  <div className="flex flex-col items-start">
+                    <span className="font-medium">Propietario de Complejo</span>
+                    <span className="text-xs text-muted-foreground">Gestionar mi complejo deportivo</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {forceRole && (
+          <div className="space-y-2">
+            <Label>Tipo de Usuario</Label>
+            <div className="p-3 bg-muted rounded-md">
+              <div className="flex flex-col">
+                <span className="font-medium">
+                  {forceRole === 'owner' ? 'Propietario de Complejo' : 'Cliente'}
+                </span>
+                <span className="text-xs text-muted-foreground">
+                  {forceRole === 'owner' ? 'Gestionar mi complejo deportivo' : 'Reservar canchas deportivas'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
           <div className="space-y-2">
             <Label htmlFor="phone">Teléfono (opcional)</Label>
